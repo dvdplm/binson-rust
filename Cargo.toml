@@ -1,0 +1,6 @@
+[package]
+name = "binson"
+version = "0.1.0"
+authors = ["David Palm <dvdplm@gmail.com>"]
+
+[dependencies]
