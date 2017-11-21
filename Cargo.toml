@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["David Palm <dvdplm@gmail.com>"]
 
 [dependencies]
+serde = "*"
+serde_derive = "*"
