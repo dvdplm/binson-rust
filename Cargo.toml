@@ -6,3 +6,4 @@ authors = ["David Palm <dvdplm@gmail.com>"]
 [dependencies]
 serde = "*"
 serde_derive = "*"
+byteorder = "*"

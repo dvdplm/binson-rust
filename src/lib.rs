@@ -1,4 +1,5 @@
 extern crate serde;
+extern crate byteorder;
 
 // The serde_derive crate provides the macros for #[derive(Serialize)] and
 // #[derive(Deserialize)]. You won't need these for implementing a data format
@@ -12,5 +13,5 @@ mod ser;
 // mod de;
 
 pub use error::{Error, Result};
-pub use ser::{to_string, Serializer};
+pub use ser::{to_binson, Serializer};
 // pub use de::{from_str, Deserializer};
