@@ -142,18 +142,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         Ok(())
     }
 
-    // Serialize a byte array as an array of bytes. Could also use a base64
-    // string here. Binary formats will typically represent byte arrays more
-    // compactly.
     fn serialize_bytes(self, v: &[u8]) -> Result<()> {
         self.output.extend(v);
         Ok(())
-        // use serde::ser::SerializeSeq;
-        // let mut seq = self.serialize_seq(Some(v.len()))?;
-        // for byte in v {
-        //     seq.serialize_element(byte)?;
-        // }
-        // seq.end()
     }
 
     // An absent optional is represented as the JSON `null`.
@@ -196,9 +187,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _variant_index: u32,
         variant: &'static str
     ) -> Result<()> {
-        // panic!("[serialize_unit_variant] name: {:?}, variant index:  {:?}, variant:  {:?}", _name, _variant_index, variant);
         self.serialize_str(format!("{}:{}", _name, variant).as_str())
-        // self.serialize_str(_name.concat(variant, ":"))
     }
 
     // As is done here, serializers are encouraged to treat newtype structs as
@@ -223,12 +212,14 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     ) -> Result<()>
         where T: ?Sized + Serialize
     {
-        self.output.push(B_BEGIN);
+
+
+        // self.output.push(B_BEGIN);
         // self.output += "{";
         variant.serialize(&mut *self)?;
         // self.output += ":";
         value.serialize(&mut *self)?;
-        self.output.push(B_END);
+        // self.output.push(B_END);
         // self.output += "}";
         Ok(())
     }
@@ -275,7 +266,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         variant: &'static str,
         _len: usize
     ) -> Result<Self::SerializeTupleVariant> {
-        self.output.push(B_BEGIN);
+        // self.output.push(B_BEGIN);
         // self.output += "{";
         variant.serialize(&mut *self)?;
         self.output.push(B_BEGIN_ARRAY);
@@ -417,7 +408,7 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
 
     fn end(self) -> Result<()> {
         self.output.push(B_END_ARRAY);
-        self.output.push(B_END);
+        // self.output.push(B_END);
         // self.output += "]}";
         Ok(())
     }
@@ -539,42 +530,39 @@ fn test_struct_u32_and_seq_of_str() {
 
     let test = Test { int: 1, seq: vec!["a", "b"] };
     let expected = vec![B_BEGIN, B_STRING_LEN, 0x3, 0x69, 0x6e, 0x74, B_INT32, 0x1, 0, 0, 0, B_STRING_LEN, 0x3, 0x73, 0x65, 0x71, B_BEGIN_ARRAY, B_STRING_LEN, 0x1, 0x61, B_STRING_LEN, 0x1, 0x62, B_END_ARRAY, B_END];
-    // print_bytes(&to_binson(&test).unwrap());
-    // print_bytes(&expected);
     assert_eq!(to_binson(&test).unwrap(), expected);
 }
-fn print_bytes(s: &Vec<u8>) {
-    // print!("\n");
-    for byte in s {
-        print!("{:02X}", byte);
-    }
-    print!("\n");
-}
+
+// fn print_bytes(s: &Vec<u8>) {
+//     for byte in s {
+//         print!("{:02X}", byte);
+//     }
+//     print!("\n");
+// }
 
 #[test]
 fn test_enum() {
     #[derive(Serialize)]
     enum E {
-        Unit,
         Newtype(u32),
-        // Tuple(u32, u32),
-        // Struct { a: u32 },
+        Unit,
+        Tuple(u32, u32),
+        Struct { a: u32 },
     }
 
     let u = E::Unit;
     let expected = vec![B_STRING_LEN, 0x6, 0x45, 0x3A, 0x55, 0x6E, 0x69, 0x74];
-    print_bytes(&expected);
     assert_eq!(to_binson(&u).unwrap(), expected);
 
-//     let n = E::Newtype(1);
-//     let expected = vec![B_STRING_LEN, 0x6, 0x45, 0x3A, 0x4E, 0x65, 0x77, 0x74, 0x79, 0x70, 0x65];
-//     assert_eq!(to_binson(&n).unwrap(), expected);
-// // 
-// //     let t = E::Tuple(1, 2);
-// //     let expected = r#"{"Tuple":[1,2]}"#;
-// //     assert_eq!(to_string(&t).unwrap(), expected);
+    let n = E::Newtype(3);
+    let expected = vec![B_STRING_LEN, 0x7, 78, 101, 119, 116, 121, 112, 101, B_INT32, 3, 0, 0, 0];
+    assert_eq!(to_binson(&n).unwrap(), expected);
 
-// //     let s = E::Struct { a: 1 };
-// //     let expected = r#"{"Struct":{"a":1}}"#;
-// //     assert_eq!(to_string(&s).unwrap(), expected);
+    let t = E::Tuple(4, 5);
+    let expected = vec![B_STRING_LEN, 0x5, 84, 117, 112, 108, 101, B_BEGIN_ARRAY, B_INT32, 4, 0 , 0, 0, B_INT32, 5, 0, 0, 0, B_END_ARRAY];
+    assert_eq!(to_binson(&t).unwrap(), expected);
+
+    let s = E::Struct { a: 1 };
+    let expected = vec![B_BEGIN, B_STRING_LEN, 0x6, 83, 116, 114, 117, 99, 116, B_BEGIN, B_STRING_LEN, 0x1, 97, B_INT32, 1, 0, 0, 0, B_END, B_END];
+    assert_eq!(to_binson(&s).unwrap(), expected);
 }
