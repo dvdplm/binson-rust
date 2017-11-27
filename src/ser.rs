@@ -2,15 +2,20 @@ use serde::ser::{self, Serialize};
 use byteorder::{LittleEndian, WriteBytesExt};
 use error::{Error, Result};
 
-const B_BEGIN:u8        = 0x40;
-const B_END:u8          = 0x41;
-const B_BEGIN_ARRAY:u8   = 0x42;
-const B_END_ARRAY:u8     = 0x43;
-const B_TRUE:u8         = 0x44;
-const B_FALSE:u8        = 0x45;
-const B_STRING_LEN:u8   = 0x14;
-const B_STRING_LEN_16:u8   = 0x15;
-const B_STRING_LEN_32:u8   = 0x16;
+const B_BEGIN:u8            = 0x40;
+const B_END:u8              = 0x41;
+const B_BEGIN_ARRAY:u8      = 0x42;
+const B_END_ARRAY:u8        = 0x43;
+const B_TRUE:u8             = 0x44;
+const B_FALSE:u8            = 0x45;
+const B_STRING_LEN:u8       = 0x14;
+const B_STRING_LEN_16:u8    = 0x15;
+const B_STRING_LEN_32:u8    = 0x16;
+const B_INT8:u8             = 0x10;
+const B_INT16:u8            = 0x11;
+const B_INT32:u8            = 0x12;
+const B_INT64:u8            = 0x13;
+const B_DOUBLE:u8            = 0x46;
 
 pub struct Serializer {
     output: Vec<u8>,
@@ -54,41 +59,49 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_i8(self, v: i8) -> Result<()> {
+        self.output.push(B_INT8);
         self.output.write_i8(v)?;
         Ok(())
     }
 
     fn serialize_i16(self, v: i16) -> Result<()> {
+        self.output.push(B_INT16);
         self.output.write_i16::<LittleEndian>(v)?;
         Ok(())
     }
 
     fn serialize_i32(self, v: i32) -> Result<()> {
+        self.output.push(B_INT32);
         self.output.write_i32::<LittleEndian>(v)?;
         Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<()> {
+        self.output.push(B_INT64);
         self.output.write_i64::<LittleEndian>(v)?;
         Ok(())
     }
 
     fn serialize_u8(self, v: u8) -> Result<()> {
+        self.output.push(B_INT8);
         self.output.write_u8(v)?;
         Ok(())
     }
 
     fn serialize_u16(self, v: u16) -> Result<()> {
+        self.output.push(B_INT16);
         self.output.write_u16::<LittleEndian>(v)?;
         Ok(())
     }
 
     fn serialize_u32(self, v: u32) -> Result<()> {
+        self.output.push(B_INT32);
         self.output.write_u32::<LittleEndian>(v)?;
         Ok(())
     }
 
     fn serialize_u64(self, v: u64) -> Result<()> {
+        self.output.push(B_INT64);
         self.output.write_u64::<LittleEndian>(v)?;
         Ok(())
     }
@@ -98,6 +111,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_f64(self, v: f64) -> Result<()> {
+        self.output.push(B_DOUBLE);
         self.output.write_f64::<LittleEndian>(v)?;
         Ok(())
     }
@@ -464,17 +478,12 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
         where T: ?Sized + Serialize
     {
-        // if !self.output.ends_with('{') {
-        //     self.output += ",";
-        // }
         key.serialize(&mut **self)?;
-        // self.output += ":";
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<()> {
         self.output.push(B_END);
-        // self.output += "}";
         Ok(())
     }
 }
@@ -510,12 +519,14 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
 fn test_struct() {
     #[derive(Serialize)]
     struct Test {
-        b: bool,
         a: u8,
+        b: bool,
     }
 
     let test = Test { b: false, a:2 };
-    let expected = vec![B_BEGIN, B_STRING_LEN, 0x1, 0x62, B_FALSE, B_STRING_LEN, 0x1, 0x61, 0x2, B_END]; // {b:false}
+    let expected = vec![B_BEGIN, B_STRING_LEN, 0x1, 0x61, B_INT8, 0x2, B_STRING_LEN, 0x1, 0x62, B_FALSE, B_END]; 
+    // let expected = vec![B_BEGIN, B_STRING_LEN, 0x1, 0x62, B_FALSE, B_STRING_LEN, 0x1, 0x61, B_INT8, 0x2, B_END];
+    // print_bytes(&expected);
     assert_eq!(to_binson(&test).unwrap(), expected);
 }
 #[test]
@@ -527,8 +538,17 @@ fn test_struct_u32_and_seq_of_str() {
     }
 
     let test = Test { int: 1, seq: vec!["a", "b"] };
-    let expected = vec![B_BEGIN, B_STRING_LEN, 0x3, 0x69, 0x6e, 0x74, 0x1, 0, 0, 0, B_STRING_LEN, 0x3, 0x73, 0x65, 0x71, B_BEGIN_ARRAY, B_STRING_LEN, 0x1, 0x61, B_STRING_LEN, 0x1, 0x62, B_END_ARRAY, B_END];
+    let expected = vec![B_BEGIN, B_STRING_LEN, 0x3, 0x69, 0x6e, 0x74, B_INT32, 0x1, 0, 0, 0, B_STRING_LEN, 0x3, 0x73, 0x65, 0x71, B_BEGIN_ARRAY, B_STRING_LEN, 0x1, 0x61, B_STRING_LEN, 0x1, 0x62, B_END_ARRAY, B_END];
+    // print_bytes(&to_binson(&test).unwrap());
+    // print_bytes(&expected);
     assert_eq!(to_binson(&test).unwrap(), expected);
+}
+fn print_bytes(s: &Vec<u8>) {
+    // print!("\n");
+    for byte in s {
+        print!("{:02X}", byte);
+    }
+    print!("\n");
 }
 
 #[test]
@@ -543,17 +563,18 @@ fn test_enum() {
 
     let u = E::Unit;
     let expected = vec![B_STRING_LEN, 0x6, 0x45, 0x3A, 0x55, 0x6E, 0x69, 0x74];
+    print_bytes(&expected);
     assert_eq!(to_binson(&u).unwrap(), expected);
 
-    let n = E::Newtype(1);
-    let expected = vec![B_STRING_LEN, 0x6, 0x45, 0x3A, 0x4E, 0x65, 0x77, 0x74, 0x79, 0x70, 0x65];
-    assert_eq!(to_binson(&n).unwrap(), expected);
-// 
-//     let t = E::Tuple(1, 2);
-//     let expected = r#"{"Tuple":[1,2]}"#;
-//     assert_eq!(to_string(&t).unwrap(), expected);
+//     let n = E::Newtype(1);
+//     let expected = vec![B_STRING_LEN, 0x6, 0x45, 0x3A, 0x4E, 0x65, 0x77, 0x74, 0x79, 0x70, 0x65];
+//     assert_eq!(to_binson(&n).unwrap(), expected);
+// // 
+// //     let t = E::Tuple(1, 2);
+// //     let expected = r#"{"Tuple":[1,2]}"#;
+// //     assert_eq!(to_string(&t).unwrap(), expected);
 
-//     let s = E::Struct { a: 1 };
-//     let expected = r#"{"Struct":{"a":1}}"#;
-//     assert_eq!(to_string(&s).unwrap(), expected);
+// //     let s = E::Struct { a: 1 };
+// //     let expected = r#"{"Struct":{"a":1}}"#;
+// //     assert_eq!(to_string(&s).unwrap(), expected);
 }
