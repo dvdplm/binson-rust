@@ -39,8 +39,8 @@ impl std::error::Error for Error {
         match *self {
             Error::Message(ref msg) => msg,
             Error::Eof => "unexpected end of input",
-            Error::Syntax => "unexpected end of input",
-            Error::ExpectedBoolean => "unexpected end of input",
+            Error::Syntax => "unexpected syntax error",
+            Error::ExpectedBoolean => "expected a bool",
             Error::IoError(ref err) => err.description(),
         }
     }
