@@ -1,6 +1,11 @@
 [package]
 name = "binson"
+description = "Implements the binson binary serialization format. See binson.org for details."
 version = "0.1.0"
+license = "MIT"
+readme = "README.md"
+keywords = ["binson", "serialization"]
+categories = ["encoding"]
 authors = ["David Palm <dvdplm@gmail.com>"]
 
 [dependencies]
